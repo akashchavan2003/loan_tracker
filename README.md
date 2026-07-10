@@ -133,3 +133,4 @@ Built with AI assistance (Antigravity/Gemini). Specifically:
 - Loan statement PDF download
 - Multi-tenant support (branch-level isolation)
 - Docker + docker-compose for easier local setup
+# loan_tracker
