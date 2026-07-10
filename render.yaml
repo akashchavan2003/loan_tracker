@@ -3,7 +3,7 @@ services:
     name: loan-emi-tracker
     env: python
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
-    startCommand: "python manage.py migrate && gunicorn config.wsgi --log-file -"
+    startCommand: "python manage.py migrate && gunicorn config.wsgi:application --log-file -"
     envVars:
       - key: DATABASE_URL
         value: postgresql://neondb_owner:npg_ni9EaWVF5sJZ@ep-rapid-sky-a1gg178d-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
