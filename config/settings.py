@@ -2,7 +2,7 @@
 Django Settings — Loan EMI Tracker
 ====================================
 Uses python-decouple for env var management.
-SQLite for local dev, PostgreSQL on Railway via DATABASE_URL.
+Database: NeonDB (PostgreSQL) — same DB for local dev and Render production.
 """
 
 from pathlib import Path
@@ -59,12 +59,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# ─── Database ─────────────────────────────────────────────────────────────────
-# Defaults to SQLite locally. On Railway, DATABASE_URL env var overrides this.
+# ─── Database — NeonDB PostgreSQL ─────────────────────────────────────────────
+# DATABASE_URL env var is used on Render (set it in Render dashboard).
+# Falls back to the hardcoded NeonDB URL for local development.
+# NeonDB requires SSL — sslmode=require is included in the URL.
+NEON_DB_URL = (
+    'postgresql://neondb_owner:npg_ni9EaWVF5sJZ'
+    '@ep-rapid-sky-a1gg178d-pooler.ap-southeast-1.aws.neon.tech'
+    '/neondb?sslmode=require'
+)
+
 DATABASES = {
     'default': dj_database_url.config(
-        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        default=config('DATABASE_URL', default=NEON_DB_URL),
         conn_max_age=600,
+        ssl_require=True,   # Always enforce SSL (NeonDB requirement)
     )
 }
 
