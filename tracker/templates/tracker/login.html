@@ -1,0 +1,94 @@
+{% load static %}
+{% load tracker_filters %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Loan EMI Tracker — Staff Login" />
+  <title>Login — Loan EMI Tracker</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+
+<body>
+  <div class="login-page">
+    <div class="login-card animate-in">
+
+      <!-- Indian tricolor accent on top (via CSS ::before) -->
+
+      <div class="login-logo">
+        <div class="login-logo-icon">💰</div>
+        <h1 class="login-title">EMI Tracker</h1>
+        <p class="login-subtitle">Loan Management System</p>
+      </div>
+
+      <!-- Error messages -->
+      {% for message in messages %}
+      <div class="toast {{ message.tags }}" style="margin-bottom:16px; animation:none;">
+        <span class="toast-icon">{% if message.tags == 'error' %}❌{% else %}ℹ️{% endif %}</span>
+        <div class="toast-body">
+          <div class="toast-message">{{ message }}</div>
+        </div>
+      </div>
+      {% endfor %}
+
+      <form method="post" id="loginForm">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label" for="id_username">Username</label>
+          <input type="text" id="id_username" name="username" class="form-input" placeholder="Enter your username"
+            autocomplete="username" autofocus required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="id_password">Password</label>
+          <div style="position:relative;">
+            <input type="password" id="id_password" name="password" class="form-input" placeholder="Enter your password"
+              autocomplete="current-password" required />
+            <button type="button" id="togglePassword"
+              style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1rem;"
+              title="Toggle password visibility">👁</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary login-btn" id="loginBtn">
+          <span>🔐</span>
+          <span>Sign In</span>
+        </button>
+      </form>
+
+      <p style="text-align:center;margin-top:24px;font-size:0.78rem;color:var(--text-muted);">
+        Staff access only. Contact your admin to get credentials.
+      </p>
+
+      <div
+        style="margin-top:20px;padding:12px;background:var(--bg-600);border-radius:var(--radius-sm);font-size:0.78rem;color:var(--text-muted);text-align:center;">
+        <strong style="color:var(--text-secondary);">Demo credentials:</strong><br />
+        Username: <code style="color:var(--accent);">test</code> &nbsp;|&nbsp;
+        Password: <code style="color:var(--accent);">test12345678</code><br />
+        <span style="font-size:0.7rem;">(Run <code>python manage.py seed_data</code> first)</span>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Password visibility toggle
+    document.getElementById('togglePassword').addEventListener('click', function () {
+      const pwd = document.getElementById('id_password');
+      pwd.type = pwd.type === 'password' ? 'text' : 'password';
+      this.textContent = pwd.type === 'password' ? '👁' : '🙈';
+    });
+
+    // Loading state on submit
+    document.getElementById('loginForm').addEventListener('submit', function () {
+      const btn = document.getElementById('loginBtn');
+      btn.innerHTML = '<span>⏳</span><span>Signing in...</span>';
+      btn.disabled = true;
+    });
+  </script>
+</body>
+
+</html>

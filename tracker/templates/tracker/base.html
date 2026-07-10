@@ -1,0 +1,130 @@
+{% load static %}
+{% load tracker_filters %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Loan EMI Tracker — Manage loans, track repayments, and view member-wise outstanding balances." />
+  <title>{% block title %}Loan EMI Tracker{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>" />
+</head>
+
+<body>
+  <div class="layout">
+
+    <!-- ── Sidebar Navigation ───────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo">
+          <div class="brand-icon">💰</div>
+          <div>
+            <div class="brand-name">EMI Tracker</div>
+            <div class="brand-sub">Loan Management</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Overview</div>
+        <a href="{% url 'dashboard' %}"
+          class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" id="nav-dashboard">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+
+        <div class="nav-section-label" style="margin-top:12px;">Management</div>
+        <a href="{% url 'members_list' %}"
+          class="nav-item {% if 'member' in request.resolver_match.url_name %}active{% endif %}" id="nav-members">
+          <span class="nav-icon">👥</span>
+          <span>Members</span>
+        </a>
+        <a href="{% url 'loans_list' %}"
+          class="nav-item {% if 'loan' in request.resolver_match.url_name %}active{% endif %}" id="nav-loans">
+          <span class="nav-icon">📋</span>
+          <span>Loans</span>
+        </a>
+
+        <div class="nav-section-label" style="margin-top:12px;">Reports</div>
+        <a href="{% url 'report_outstanding' %}"
+          class="nav-item {% if request.resolver_match.url_name == 'report_outstanding' %}active{% endif %}"
+          id="nav-reports">
+          <span class="nav-icon">📈</span>
+          <span>Outstanding Report</span>
+        </a>
+
+        <div class="nav-section-label" style="margin-top:12px;">System</div>
+        <a href="/admin/" class="nav-item" id="nav-admin" target="_blank">
+          <span class="nav-icon">⚙️</span>
+          <span>Admin Panel</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <div class="user-avatar">{{ request.user.username|upper|slice:":2" }}</div>
+          <div>
+            <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+            <div class="user-role">{% if request.user.is_superuser %}Super Admin{% else %}Staff{% endif %}</div>
+          </div>
+        </div>
+        <a href="{% url 'logout' %}" class="logout-btn">
+          <span>🚪</span>
+          <span>Logout</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- ── Main Content Area ─────────────────────────────── -->
+    <main class="main-content" id="mainContent">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+            <div class="page-breadcrumb">
+              <a href="{% url 'dashboard' %}">Home</a>
+              {% block breadcrumb %}{% endblock %}
+            </div>
+          </div>
+          <div class="flex gap-3">
+            {% block header_actions %}{% endblock %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Page Body -->
+      <div class="page-body animate-in">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <!-- ── Toast Notifications ───────────────────────────────── -->
+  <div class="toast-container" id="toastContainer">
+    {% for message in messages %}
+    <div class="toast {{ message.tags }}" role="alert">
+      <span class="toast-icon">
+        {% if message.tags == 'success' %}✅
+        {% elif message.tags == 'error' %}❌
+        {% elif message.tags == 'warning' %}⚠️
+        {% else %}ℹ️{% endif %}
+      </span>
+      <div class="toast-body">
+        <div class="toast-message">{{ message }}</div>
+      </div>
+      <button class="toast-close" onclick="this.closest('.toast').remove()">✕</button>
+    </div>
+    {% endfor %}
+  </div>
+
+  <script src="{% static 'js/main.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+
+</html>

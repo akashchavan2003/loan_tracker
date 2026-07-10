@@ -1,0 +1,127 @@
+{% extends "tracker/base.html" %}
+{% load tracker_filters %}
+
+{% block title %}{{ member.name }} — Loan EMI Tracker{% endblock %}
+{% block page_title %}{{ member.name }}{% endblock %}
+{% block breadcrumb %}
+<span>›</span> <a href="{% url 'members_list' %}">Members</a>
+<span>›</span> {{ member.employee_id }}
+{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'loan_create' %}?member={{ member.pk }}" class="btn btn-primary" id="btn-add-loan-for-member">
+  <span>➕</span> New Loan
+</a>
+<a href="{% url 'member_edit' member.pk %}" class="btn btn-secondary" id="btn-edit-member">
+  <span>✏️</span> Edit
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Member Profile Card ────────────────────────────────── -->
+<div class="card mb-6">
+  <div class="info-grid">
+    <div class="info-item">
+      <div class="info-label">Employee ID</div>
+      <div class="info-value font-mono">{{ member.employee_id }}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Full Name</div>
+      <div class="info-value">{{ member.name }}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Monthly Salary</div>
+      <div class="info-value accent">{{ member.monthly_salary|inr }}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Total Outstanding</div>
+      <div class="info-value accent large">
+        {% with outstanding=member.total_outstanding %}
+        {% if outstanding > 0 %}{{ outstanding|inr }}{% else %}₹0{% endif %}
+        {% endwith %}
+      </div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Member Since</div>
+      <div class="info-value" style="font-size:0.95rem;">{{ member.created_at|date:"d M Y" }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Loans for this Member ─────────────────────────────── -->
+<div class="card" style="padding:0;">
+  <div class="card-header" style="padding:20px 24px;">
+    <div class="card-title">Loans ({{ loans|length }})</div>
+  </div>
+
+  {% if loans %}
+  <div class="table-wrapper">
+    <table id="member-loans-table">
+      <thead>
+        <tr>
+          <th>Loan #</th>
+          <th>Principal</th>
+          <th>Tenure</th>
+          <th>EMI / Month</th>
+          <th>Outstanding</th>
+          <th>Progress</th>
+          <th>Disbursed</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loan in loans %}
+        <tr>
+          <td class="td-mono">#{{ loan.pk }}</td>
+          <td class="td-amount">{{ loan.principal|inr }}</td>
+          <td class="text-muted">{{ loan.tenure_months }} mo</td>
+          <td class="td-mono">{{ loan.emi_amount|inr }}</td>
+          <td class="td-amount">
+            {% if loan.outstanding_principal > 0 %}
+            {{ loan.outstanding_principal|inr }}
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td style="min-width:130px;">
+            <div class="text-xs text-muted mb-1">
+              {{ loan.paid_emi_count }}/{{ loan.total_emi_count }} EMIs
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-bar" style="width:{% widthratio loan.paid_emi_count loan.total_emi_count 100 %}%">
+              </div>
+            </div>
+          </td>
+          <td class="text-muted text-sm">{{ loan.disbursed_on|date:"d M Y" }}</td>
+          <td>
+            {% if loan.status == 'ACTIVE' %}
+            <span class="badge badge-active">● Active</span>
+            {% elif loan.status == 'CLOSED' %}
+            <span class="badge badge-closed">✓ Closed</span>
+            {% else %}
+            <span class="badge badge-foreclosed">⚡ Foreclosed</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'loan_detail' loan.pk %}" class="btn btn-secondary btn-xs"
+              id="btn-view-loan-{{ loan.pk }}">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">📭</div>
+    <div class="empty-state-title">No loans for this member</div>
+    <div class="empty-state-sub">Create a loan to get started.</div>
+    <a href="{% url 'loan_create' %}?member={{ member.pk }}" class="btn btn-primary" id="btn-first-loan-member">Create
+      Loan</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

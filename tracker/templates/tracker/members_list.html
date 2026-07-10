@@ -1,0 +1,123 @@
+{% extends "tracker/base.html" %}
+{% load tracker_filters %}
+
+{% block title %}Members — Loan EMI Tracker{% endblock %}
+{% block page_title %}Members{% endblock %}
+{% block breadcrumb %}<span>›</span> Members{% endblock %}
+
+{% block header_actions %}
+  <a href="{% url 'member_add' %}" class="btn btn-primary" id="btn-add-member">
+    <span>➕</span> Add Member
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Search Bar ─────────────────────────────────────────── -->
+<div class="flex items-center justify-between mb-6">
+  <form method="get" style="flex:1;max-width:400px;">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        name="q"
+        value="{{ search_query }}"
+        class="form-input"
+        placeholder="Search by name or employee ID…"
+        id="member-search"
+        autocomplete="off"
+      />
+    </div>
+  </form>
+  <div class="text-sm text-muted">
+    {{ members|length }} member{{ members|length|pluralize }}
+    {% if search_query %} for "{{ search_query }}"{% endif %}
+  </div>
+</div>
+
+<!-- ── Members Table ──────────────────────────────────────── -->
+{% if members %}
+  <div class="card" style="padding:0;">
+    <div class="table-wrapper">
+      <table id="members-table">
+        <thead>
+          <tr>
+            <th>Employee ID</th>
+            <th>Name</th>
+            <th>Monthly Salary</th>
+            <th>Active Loans</th>
+            <th>Total Outstanding</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for member in members %}
+          <tr>
+            <td>
+              <span class="badge badge-closed" style="font-family:monospace;">{{ member.employee_id }}</span>
+            </td>
+            <td>
+              <a href="{% url 'member_detail' member.pk %}" style="font-weight:600;color:var(--text-primary);">
+                {{ member.name }}
+              </a>
+            </td>
+            <td class="td-amount">{{ member.monthly_salary|inr }}</td>
+            <td class="td-mono">
+              {% with count=member.loan_set.count %}
+                {% if count > 0 %}
+                  <span class="text-accent font-bold">{{ count }}</span>
+                {% else %}
+                  <span class="text-muted">0</span>
+                {% endif %}
+              {% endwith %}
+            </td>
+            <td class="td-amount">
+              {% with outstanding=member.total_outstanding %}
+                {% if outstanding > 0 %}
+                  {{ outstanding|inr }}
+                {% else %}
+                  <span class="text-muted">₹0</span>
+                {% endif %}
+              {% endwith %}
+            </td>
+            <td class="text-muted text-sm">{{ member.created_at|date:"d M Y" }}</td>
+            <td>
+              <div class="flex gap-2">
+                <a href="{% url 'member_detail' member.pk %}"
+                   class="btn btn-secondary btn-xs"
+                   id="btn-view-member-{{ member.pk }}">View</a>
+                <a href="{% url 'loan_create' %}?member={{ member.pk }}"
+                   class="btn btn-primary btn-xs"
+                   id="btn-loan-for-{{ member.pk }}">+ Loan</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+{% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">👥</div>
+    <div class="empty-state-title">
+      {% if search_query %}No members found for "{{ search_query }}"{% else %}No members yet{% endif %}
+    </div>
+    <div class="empty-state-sub">
+      {% if search_query %}
+        Try a different search term.
+      {% else %}
+        Add your first member to get started.
+      {% endif %}
+    </div>
+    {% if not search_query %}
+      <a href="{% url 'member_add' %}" class="btn btn-primary" id="btn-first-member">Add First Member</a>
+    {% else %}
+      <a href="{% url 'members_list' %}" class="btn btn-secondary">Clear Search</a>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% endblock %}

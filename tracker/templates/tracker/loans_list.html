@@ -1,0 +1,121 @@
+{% extends "tracker/base.html" %}
+{% load tracker_filters %}
+
+{% block title %}Loans — Loan EMI Tracker{% endblock %}
+{% block page_title %}All Loans{% endblock %}
+{% block breadcrumb %}<span>›</span> Loans{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'loan_create' %}" class="btn btn-primary" id="btn-create-loan">
+  <span>➕</span> New Loan
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Filter Bar ─────────────────────────────────────────── -->
+<form method="get" class="flex items-center gap-3 mb-6 flex-wrap" id="loan-filter-form">
+  <div class="search-wrap" style="flex:1;max-width:300px;">
+    <span class="search-icon">🔍</span>
+    <input type="text" name="q" value="{{ search_query }}" class="form-input" placeholder="Search member name…"
+      id="loan-search" autocomplete="off" />
+  </div>
+
+  <div class="flex gap-2" style="flex-wrap:wrap;">
+    <a href="{% url 'loans_list' %}"
+      class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-secondary{% endif %}" id="filter-all">All</a>
+    <a href="?status=ACTIVE{% if search_query %}&q={{ search_query }}{% endif %}"
+      class="btn btn-sm {% if status_filter == 'ACTIVE' %}btn-primary{% else %}btn-secondary{% endif %}"
+      id="filter-active">Active</a>
+    <a href="?status=CLOSED{% if search_query %}&q={{ search_query }}{% endif %}"
+      class="btn btn-sm {% if status_filter == 'CLOSED' %}btn-primary{% else %}btn-secondary{% endif %}"
+      id="filter-closed">Closed</a>
+    <a href="?status=FORECLOSED{% if search_query %}&q={{ search_query }}{% endif %}"
+      class="btn btn-sm {% if status_filter == 'FORECLOSED' %}btn-primary{% else %}btn-secondary{% endif %}"
+      id="filter-foreclosed">Foreclosed</a>
+  </div>
+
+  <div class="text-sm text-muted" style="margin-left:auto;">
+    {{ loans|length }} loan{{ loans|length|pluralize }}
+  </div>
+</form>
+
+<!-- ── Loans Table ────────────────────────────────────────── -->
+{% if loans %}
+<div class="card" style="padding:0;">
+  <div class="table-wrapper">
+    <table id="loans-table">
+      <thead>
+        <tr>
+          <th>Loan #</th>
+          <th>Member</th>
+          <th>Principal</th>
+          <th>Tenure</th>
+          <th>EMI / Month</th>
+          <th>Outstanding</th>
+          <th>Status</th>
+          <th>Disbursed</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loan in loans %}
+        <tr>
+          <td class="td-mono text-muted">#{{ loan.pk }}</td>
+          <td>
+            <a href="{% url 'member_detail' loan.member.pk %}" style="font-weight:600;">
+              {{ loan.member.name }}
+            </a>
+            <div class="text-xs text-muted">{{ loan.member.employee_id }}</div>
+          </td>
+          <td class="td-amount">{{ loan.principal|inr }}</td>
+          <td class="text-muted">{{ loan.tenure_months }} mo</td>
+          <td class="td-mono">{{ loan.emi_amount|inr }}</td>
+          <td>
+            {% if loan.outstanding_principal > 0 %}
+            <span class="td-amount">{{ loan.outstanding_principal|inr }}</span>
+            {% else %}
+            <span class="text-muted font-mono">₹0</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if loan.status == 'ACTIVE' %}
+            <span class="badge badge-active">● Active</span>
+            {% elif loan.status == 'CLOSED' %}
+            <span class="badge badge-closed">✓ Closed</span>
+            {% else %}
+            <span class="badge badge-foreclosed">⚡ Foreclosed</span>
+            {% endif %}
+          </td>
+          <td class="text-muted text-sm">{{ loan.disbursed_on|date:"d M Y" }}</td>
+          <td>
+            <a href="{% url 'loan_detail' loan.pk %}" class="btn btn-secondary btn-xs"
+              id="btn-view-loan-{{ loan.pk }}">View →</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">📭</div>
+  <div class="empty-state-title">No loans found</div>
+  <div class="empty-state-sub">
+    {% if search_query or status_filter %}
+    Try clearing the filters.
+    {% else %}
+    Create a loan to get started.
+    {% endif %}
+  </div>
+  {% if not search_query and not status_filter %}
+  <a href="{% url 'loan_create' %}" class="btn btn-primary" id="btn-first-loan">Create Loan</a>
+  {% else %}
+  <a href="{% url 'loans_list' %}" class="btn btn-secondary">Clear Filters</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

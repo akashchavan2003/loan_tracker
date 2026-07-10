@@ -1,0 +1,249 @@
+{% extends "tracker/base.html" %}
+{% load tracker_filters %}
+
+{% block title %}Loan #{{ loan.pk }} — Loan EMI Tracker{% endblock %}
+{% block page_title %}Loan #{{ loan.pk }}{% endblock %}
+{% block breadcrumb %}
+  <span>›</span> <a href="{% url 'loans_list' %}">Loans</a>
+  <span>›</span> #{{ loan.pk }}
+{% endblock %}
+
+{% block header_actions %}
+  {% if loan.status == 'ACTIVE' %}
+    <button class="btn btn-danger btn-sm" id="btn-foreclose"
+            onclick="document.getElementById('foreclosureModal').classList.add('open')">
+      <span>⚡</span> Foreclose Loan
+    </button>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Loan Summary ───────────────────────────────────────── -->
+<div class="card mb-6">
+  <div class="card-header">
+    <div class="flex items-center gap-3">
+      <div class="card-title">Loan Summary</div>
+      {% if loan.status == 'ACTIVE' %}
+        <span class="badge badge-active">● Active</span>
+      {% elif loan.status == 'CLOSED' %}
+        <span class="badge badge-closed">✓ Closed</span>
+      {% else %}
+        <span class="badge badge-foreclosed">⚡ Foreclosed</span>
+      {% endif %}
+    </div>
+    <a href="{% url 'member_detail' loan.member.pk %}" style="font-size:0.85rem;color:var(--accent);">
+      {{ loan.member.name }} ({{ loan.member.employee_id }})
+    </a>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-item">
+      <div class="info-label">Principal</div>
+      <div class="info-value accent large">{{ loan.principal|inr }}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Outstanding Balance</div>
+      <div class="info-value large {% if loan.outstanding_principal > 0 %}accent{% else %}text-success{% endif %}">
+        {% if loan.outstanding_principal > 0 %}
+          {{ loan.outstanding_principal|inr }}
+        {% else %}
+          ₹0 ✓
+        {% endif %}
+      </div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Monthly EMI</div>
+      <div class="info-value" style="font-size:1.2rem;">{{ loan.emi_amount|inr }}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Tenure</div>
+      <div class="info-value" style="font-size:1.1rem;">{{ loan.tenure_months }} months</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Annual Rate</div>
+      <div class="info-value" style="font-size:1.1rem;">{{ loan.annual_rate }}%</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Disbursed On</div>
+      <div class="info-value" style="font-size:1rem;">{{ loan.disbursed_on|date:"d M Y" }}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">EMIs Paid</div>
+      <div class="info-value" style="font-size:1.1rem;">{{ loan.paid_emi_count }} / {{ loan.total_emi_count }}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Principal Repaid</div>
+      <div class="info-value" style="font-size:1rem;color:var(--success);">
+        {{ loan.repaid_principal|inr }} ({{ loan.repaid_percentage|floatformat:1 }}%)
+      </div>
+    </div>
+  </div>
+
+  <!-- Repayment progress bar -->
+  <div style="margin-top:20px;">
+    <div class="flex justify-between text-xs text-muted mb-2">
+      <span>Repayment Progress</span>
+      <span>{{ loan.repaid_percentage|floatformat:1 }}%</span>
+    </div>
+    <div class="progress-wrap" style="height:10px;">
+      <div class="progress-bar" style="width:{{ loan.repaid_percentage|floatformat:0 }}%"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── EMI Schedule Table ─────────────────────────────────── -->
+<div class="card" style="padding:0;">
+  <div class="card-header" style="padding:20px 24px;">
+    <div class="card-title">EMI Repayment Schedule</div>
+    <div class="text-xs text-muted">
+      Interest computed on reducing balance. Last EMI adjusted for rounding.
+    </div>
+  </div>
+
+  <div class="table-wrapper">
+    <table id="emi-schedule-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Due Date</th>
+          <th style="text-align:right;">EMI Amount</th>
+          <th style="text-align:right;">Principal</th>
+          <th style="text-align:right;">Interest</th>
+          <th style="text-align:right;">Outstanding After</th>
+          <th>Status</th>
+          {% if loan.status == 'ACTIVE' %}<th></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for emi in schedule %}
+        <tr class="{% if emi.is_paid %}paid-row{% endif %}" id="emi-row-{{ emi.emi_number }}">
+          <td class="td-mono">{{ emi.emi_number }}</td>
+          <td class="text-sm">{{ emi.due_date|date:"d M Y" }}</td>
+          <td class="td-amount text-right">{{ emi.emi_amount|inr }}</td>
+          <td class="td-mono text-right">{{ emi.principal_component|inr }}</td>
+          <td class="td-mono text-right" style="color:var(--warning);">{{ emi.interest_component|inr }}</td>
+          <td class="text-right" style="font-family:monospace;font-weight:600;">
+            {% if emi.outstanding_balance > 0 %}
+              {{ emi.outstanding_balance|inr }}
+            {% else %}
+              <span style="color:var(--success);">₹0 ✓</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if emi.is_paid %}
+              <span class="badge badge-paid">✓ Paid</span>
+              {% if emi.paid_on %}<div class="text-xs text-muted">{{ emi.paid_on|date:"d M Y" }}</div>{% endif %}
+            {% else %}
+              <span class="badge badge-unpaid">Pending</span>
+            {% endif %}
+          </td>
+          {% if loan.status == 'ACTIVE' %}
+          <td>
+            {% if not emi.is_paid %}
+              <form method="post" action="{% url 'mark_emi_paid' loan.pk emi.pk %}"
+                    style="display:inline;"
+                    id="form-pay-emi-{{ emi.emi_number }}">
+                {% csrf_token %}
+                <button type="submit"
+                        class="btn btn-primary btn-xs"
+                        id="btn-pay-emi-{{ emi.emi_number }}"
+                        onclick="return confirm('Mark EMI #{{ emi.emi_number }} as paid? This cannot be undone.')">
+                  Mark Paid
+                </button>
+              </form>
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+      <!-- Totals row -->
+      <tfoot style="background:var(--bg-900);border-top:2px solid var(--bg-500);">
+        <tr>
+          <td colspan="2" style="padding:14px 16px;font-weight:700;color:var(--text-secondary);">Totals</td>
+          <td class="text-right td-amount" style="padding:14px 16px;">
+            {% with total_emi=0 %}
+              {{ schedule|length }} × varies
+            {% endwith %}
+          </td>
+          <td class="text-right td-mono" style="padding:14px 16px;color:var(--text-primary);font-weight:700;">
+            {{ loan.principal|inr }}
+          </td>
+          <td class="text-right td-mono" style="padding:14px 16px;color:var(--warning);font-weight:700;">
+            <!-- Total interest = Total paid - principal -->
+          </td>
+          <td colspan="{% if loan.status == 'ACTIVE' %}3{% else %}2{% endif %}"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- ── Foreclosure Confirmation Modal ────────────────────── -->
+{% if loan.status == 'ACTIVE' and foreclosure_info %}
+<div class="modal-overlay" id="foreclosureModal" role="dialog" aria-modal="true"
+     aria-labelledby="modal-title">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">⚡ Foreclose Loan #{{ loan.pk }}?</div>
+    <div class="modal-body">
+      <p style="margin-bottom:16px;">
+        Foreclosure clears the loan now. You pay the outstanding principal +
+        one month's interest. All future interest is <strong>waived</strong>.
+      </p>
+
+      <div style="background:var(--bg-600);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;">
+        <div class="info-grid" style="grid-template-columns:1fr 1fr 1fr;gap:12px;">
+          <div>
+            <div class="info-label">Outstanding Principal</div>
+            <div class="info-value" style="font-size:1rem;">{{ foreclosure_info.principal|inr }}</div>
+          </div>
+          <div>
+            <div class="info-label">+ Current Month Interest</div>
+            <div class="info-value" style="font-size:1rem;color:var(--warning);">{{ foreclosure_info.interest|inr }}</div>
+          </div>
+          <div>
+            <div class="info-label">Settlement Amount</div>
+            <div class="info-value accent large">{{ foreclosure_info.settlement_amount|inr }}</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-xs text-muted">
+        This action cannot be undone. All remaining EMIs will be removed.
+      </p>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="btn-cancel-foreclose"
+              onclick="document.getElementById('foreclosureModal').classList.remove('open')">
+        Cancel
+      </button>
+      <form method="post" action="{% url 'foreclose_loan' loan.pk %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger" id="btn-confirm-foreclose">
+          ⚡ Confirm Foreclosure — {{ foreclosure_info.settlement_amount|inr }}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Close modal on overlay click (outside modal box)
+document.getElementById('foreclosureModal')?.addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
+});
+
+// Keyboard: Escape closes modal
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.getElementById('foreclosureModal')?.classList.remove('open');
+  }
+});
+</script>
+{% endblock %}

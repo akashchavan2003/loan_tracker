@@ -1,0 +1,112 @@
+{% extends "tracker/base.html" %}
+{% load tracker_filters %}
+
+{% block title %}Outstanding Report — Loan EMI Tracker{% endblock %}
+{% block page_title %}Outstanding Report{% endblock %}
+{% block breadcrumb %}<span>›</span> Reports <span>›</span> Outstanding{% endblock %}
+
+{% block header_actions %}
+  <a href="{% url 'export_outstanding_csv' %}"
+     class="btn btn-secondary" id="btn-export-csv">
+    <span>📥</span> Export CSV
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Grand Total ────────────────────────────────────────── -->
+<div class="card mb-6" style="border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.04);">
+  <div class="flex justify-between items-center">
+    <div>
+      <div class="text-xs text-muted mb-1">TOTAL OUTSTANDING ACROSS ALL ACTIVE LOANS</div>
+      <div class="info-value accent" style="font-size:2rem;letter-spacing:-0.04em;font-family:'JetBrains Mono',monospace;">
+        {{ grand_total|inr }}
+      </div>
+    </div>
+    <div style="font-size:3rem;opacity:0.3;">💰</div>
+  </div>
+</div>
+
+<!-- ── Member-wise Table ──────────────────────────────────── -->
+<div class="card" style="padding:0;">
+  <div class="card-header" style="padding:20px 24px;">
+    <div class="card-title">Member-wise Outstanding (Active Loans Only)</div>
+    <div class="text-xs text-muted">Sorted by highest outstanding first</div>
+  </div>
+
+  {% if members %}
+    <div class="table-wrapper">
+      <table id="outstanding-report-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Employee ID</th>
+            <th>Name</th>
+            <th>Monthly Salary</th>
+            <th style="text-align:right;">Total Outstanding</th>
+            <th>Share of Total</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for member in members %}
+          {% with outstanding=member.loan_outstanding|default:0 %}
+          <tr>
+            <td class="td-mono text-muted">{{ forloop.counter }}</td>
+            <td>
+              <span class="badge badge-closed" style="font-family:monospace;">{{ member.employee_id }}</span>
+            </td>
+            <td>
+              <a href="{% url 'member_detail' member.pk %}" style="font-weight:600;">
+                {{ member.name }}
+              </a>
+            </td>
+            <td class="td-mono text-muted">{{ member.monthly_salary|inr }}</td>
+            <td class="text-right">
+              {% if outstanding > 0 %}
+                <span class="td-amount">{{ outstanding|inr }}</span>
+              {% else %}
+                <span class="text-muted font-mono">₹0</span>
+              {% endif %}
+            </td>
+            <td style="min-width:180px;">
+              {% if grand_total > 0 and outstanding > 0 %}
+                {% widthratio outstanding grand_total 100 as pct %}
+                <div class="text-xs text-muted mb-1">{{ pct }}%</div>
+                <div class="progress-wrap">
+                  <div class="progress-bar" style="width:{{ pct }}%"></div>
+                </div>
+              {% else %}
+                <span class="text-muted text-xs">—</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'member_detail' member.pk %}"
+                 class="btn btn-secondary btn-xs"
+                 id="btn-report-member-{{ member.pk }}">View →</a>
+            </td>
+          </tr>
+          {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">📭</div>
+      <div class="empty-state-title">No members found</div>
+      <div class="empty-state-sub">Add members and loans to see the outstanding report.</div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- ── Report Notes ───────────────────────────────────────── -->
+<div style="margin-top:20px;padding:14px 18px;background:var(--bg-700);border-radius:var(--radius-sm);font-size:0.8rem;color:var(--text-muted);">
+  <strong style="color:var(--text-secondary);">📌 Report Notes:</strong>
+  Outstanding balance = remaining principal to be repaid. Does not include future interest
+  (interest accrues only on remaining principal each month). Foreclosed and closed loans
+  have ₹0 outstanding and are excluded from totals.
+</div>
+
+{% endblock %}

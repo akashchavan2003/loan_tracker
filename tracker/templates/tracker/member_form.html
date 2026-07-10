@@ -1,0 +1,77 @@
+{% extends "tracker/base.html" %}
+{% load tracker_filters %}
+
+{% block title %}{{ action }} Member — Loan EMI Tracker{% endblock %}
+{% block page_title %}{{ action }} Member{% endblock %}
+{% block breadcrumb %}
+  <span>›</span> <a href="{% url 'members_list' %}">Members</a>
+  <span>›</span> {{ action }}
+{% endblock %}
+
+{% block content %}
+<div style="max-width:600px;">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Member Information</div>
+    </div>
+
+    <form method="post" id="memberForm">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.employee_id.id_for_label }}">
+          Employee ID <span style="color:var(--danger);">*</span>
+        </label>
+        {{ form.employee_id }}
+        {% if form.employee_id.errors %}
+          {% for error in form.employee_id.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        {% endif %}
+        <div class="text-xs text-muted mt-1">Will be auto-uppercased. Must be unique.</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.name.id_for_label }}">
+          Full Name <span style="color:var(--danger);">*</span>
+        </label>
+        {{ form.name }}
+        {% if form.name.errors %}
+          {% for error in form.name.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.monthly_salary.id_for_label }}">
+          Monthly Salary (₹) <span style="color:var(--danger);">*</span>
+        </label>
+        {{ form.monthly_salary }}
+        {% if form.monthly_salary.errors %}
+          {% for error in form.monthly_salary.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        {% endif %}
+      </div>
+
+      <!-- Non-field errors (e.g. unique constraint) -->
+      {% if form.non_field_errors %}
+        <div style="padding:12px 16px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:var(--radius-sm);margin-bottom:20px;">
+          {% for error in form.non_field_errors %}
+            <div class="form-error" style="margin:0;">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="flex gap-3 mt-6">
+        <button type="submit" class="btn btn-primary" id="btn-submit-member">
+          <span>{% if action == 'Add' %}➕{% else %}💾{% endif %}</span>
+          {{ action }} Member
+        </button>
+        <a href="{% url 'members_list' %}" class="btn btn-secondary" id="btn-cancel">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
